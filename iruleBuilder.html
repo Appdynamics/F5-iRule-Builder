@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<style type="text/css">
+a {
+   font-size:12px;
+   color:red;
+   }
+a#warning {
+	font-size:12px;
+	margin-left:5%;
+   }
+pre {
+  overflow: auto;
+  background-color: #ffffff;
+  border: 1px solid white;
+  padding: 5px;
+}
+pre#input {
+	width: 140px;
+	display: inline;
+	margin-left:45%;
+	}
+input {
+	height:20px;
+	}
+input[type="text"]#akr.textbox {
+	width: 20%;
+	margin-left:40%;
+	}
+input[type="text"]#slr.textbox {
+	width: 80%;
+	margin-left:10%;
+	}
+input[type="text"]#mcr.textbox {
+	width: 75%;
+	margin-left:12%;
+	}
+input#generate {
+	width: 100px;
+	font-size: 20px;
+	margin-left:45%;
+	}
+input#reload {
+	width:100px;
+	font-size: 20px;
+	margin-left: 45%;
+	}
+select {
+	margin-left: 45%;
+	}
+select#cmpr {
+	margin-left: 48%;
+	}	
+div.input-quest {
+	text-align: center;
+	font-size: 18px;
+	}
+div.block {
+	border: 1px solid
+}
+div.output {
+	border: 1px solid
+}
+span#mc {
+	font-size: 16px;
+	width:100%;
+	}
+.form {
+	width: 80%;
+	margin: 5% auto;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	}
+.form h1 {
+	text-align: center;
+	}
+div.section {
+	padding: 3px;
+	}
+div.block {
+	padding: 8px;
+	border-radius:5px;
+	}
+</style>
+<title>AppDynamics EUM Injection iRule Builder</title>
+</head>
+<body>
+<div class="form">
+<h1>AppDynamics EUM Injection iRule Builder</h1>
+  <form method="post" id="main" name="main" action="#text">
+    <div class="section" id="appkey">
+    <div class="block">
+                    <div class="input-quest" id="ak">EUM Application Key</div><br />
+                    <div class="input-resp"><span><input  class="textbox" id="akr" name="ak" type="text" placeholder="AAB-AA-ABA" value="" /></span> 
+    </div>
+    </div>
+    </div>
+	<br />
+	<div class="section" id="script">
+    <div class="block">
+                    <div class="input-quest" id="sl">JavaScript Src URL</div><br />
+                    <div class="input-resp"><span><input  class="textbox" id="slr" name="sl" type="text" placeholder="https://cdn.appdynamics.com/adrum/adrum-latest.js" value="" /></span> 
+    </div>
+    </div>
+    </div>
+	<br />
+    <div class="section" id="condition">
+    <div class="block">
+                    <div class="input-quest" id="mc">Matching Condition</div><br />
+                    <div class="input-resp">
+                    <select id="expression">
+						<option value="[HTTP::uri]" selected="true">[HTTP::uri]</option>
+						<option value="[HTTP::path]">[HTTP::path]</option>
+					</select><br /><br />
+                    <select id="operand">
+						<option value="contains">Contains</option>
+						<option value="ends_with">Ends With</option>
+						<option value="equals">Equals</option>
+						<option value="matches">Matches</option>
+						<option value="matches_regex">Matches RegEx</option>
+						<option value="starts_with">Starts With</option>
+					</select><br /><br />
+					<input  class="textbox" id="mcr" name="mc" type="text" placeholder="segments/in/uri" value="" /><br /><br /><a id="warning">* Understanding when to use [HTTP::uri] versus [HTTP::path]. </a><a href="https://devcentral.f5.com/questions/when-to-use-httpuri-vs-httppath-contains-vs-matches">Source</a><br /><a id="warning">* Please note that the matching condition cannot contain a # (hashtag), as this character is not supported by the F5 interpreter. </a><a href="https://devcentral.f5.com/questions/irule-w-special-character-in-original-uri">Source</a>
+    </div>
+    </div>
+    </div>
+    <br />
+    <div class="section" id="compression">
+    <div class="block">
+    			<div class="input-quest" id="cmp">Compression</div><br />
+    			<div class="input-resp"><span id="cmp">
+    			<select id="cmpr">
+    					<option value=' # HTTP::header remove "Accept-Encoding"' selected="true">No</option>
+						<option value=' HTTP::header remove "Accept-Encoding"'>Yes</option>
+				</select>
+				</span>
+	</div>
+	</div>
+	</div>
+	<br />
+	<div class="section">
+    <div class="block" id="submit">
+            <input id="generate" type="submit" name="script" value="Build iRule" />
+            <input id="reload" type="submit" name="reload" value="Reload" />
+        </div>
+        </div>
+    </form>
+<br />
+<br />
+<div class="output">
+</div>
+
+</div>
+<script>
+$('#reload').click(function() {
+    location.reload();
+});
+</script>
+<script>
+$('#main').submit(function(e) {
+  e.preventDefault();
+  $('div.output').html('<div class="input-quest">Generated iRule</div><pre class="output"></pre>')
+  $('pre.output').text('when HTTP_REQUEST \n { \n \
+ # This is the condition for which requests will be matched against \n\
+  if {' + $('#expression').val() + ' ' + $('#operand').val() + ' "' + $('#mcr').val() + '"} { \n \
+  set enableEum 1 \n \
+  } \n \
+  else { \n \
+  set enableEum 0 \n \
+  } \n \
+ # Disable the stream filter for client requests as we are only interested in the server response \n\
+  STREAM::disable \n  # LTM does not uncompress response content, so if the server has compression enabled \n\
+  # and it cannot be disabled on the server, we can prevent the server from \n\
+  # sending a compressed response by removing the compression offerings from the client\n ' + $('#cmpr').val() + '\n\
+ } \n \
+  \n\
+when HTTP_RESPONSE \n\
+ { \n \
+ # Disable the stream filter for all server responses \n\
+  STREAM::disable \n \
+ # Inserts the necessary JavaScript for EUM\n\
+  if {($enableEum == 1) && ([HTTP::header "Content-Type"] starts_with "text/html")} {\n   STREAM::expression {\n \
+  @</title>@</title> \n \
+  <script> \n \
+  window["adrum-start-time"] = new Date().getTime(); \n \
+  (function(config){ \n \
+		config.appKey = '+ $('#akr').val() + '; \n \
+		config.adrumExtUrlHttp = \'http://cdn.appdynamics.com\'; \n \
+		config.adrumExtUrlHttps = \'https://cdn.appdynamics.com\';\n \
+		config.beaconUrlHttp = \'http://fra-col.eum-appdynamics.com\';\n \
+		config.beaconUrlHttps = \'https://fra-col.eum-appdynamics.com\';\n \
+		config.xd = {enable : false}; \n \
+	})(window[\'adrum-config\'] || (window[\'adrum-config\'] = {})); \n \
+  </scr\ipt> \n \
+  <script type="text/javascript" src="' + $('#slr').val() + '"></scr\ipt>@} \n \
+ # Enable the stream filter for this response only \n\
+  STREAM::enable\n   }\n \
+}')});
+</script>
+<script>
+$("#generate").click(function() {
+    $('html,body').animate({
+        scrollTop: $("div.output").offset().top},
+        'slow');
+});
+</script>
+</body>
+</html>
+
+	
+	   
+
+
+
+
